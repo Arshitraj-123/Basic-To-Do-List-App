@@ -722,10 +722,6 @@
         <span class="nav-icon"><i class="fas fa-tasks"></i></span>
         <span>Tasks</span>
     </button>
-    <button class="nav-item" onclick="location.href='my profile.html'">
-        <span class="nav-icon"><i class="fas fa-user"></i></span>
-        <span>My Profile</span>
-    </button>
     <button class="nav-item" onclick="location.href='setting.html'">
         <span class="nav-icon"><i class="fas fa-cog"></i></span>
         <span>Settings</span>
@@ -815,46 +811,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Tasks Page -->
-            <div class="page-content" id="tasks-page">
-                <div class="dashboard-content">
-                    <h2 class="section-title">All Tasks</h2>
-                    <div class="empty-state">
-                        <div class="empty-icon">📋</div>
-                        <div class="empty-text">Task Management</div>
-                        <div class="empty-subtext">Advanced task management features coming soon</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Profile Page -->
-            <div class="page-content" id="profile-page">
-                <div class="dashboard-content">
-                    <h2 class="section-title">Profile</h2>
-                    <div class="empty-state">
-                        <div class="empty-icon">👤</div>
-                        <div class="empty-text">User Profile</div>
-                        <div class="empty-subtext">Profile management features coming soon</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Page -->
-            <div class="page-content" id="settings-page">
-                <div class="dashboard-content">
-                    <h2 class="section-title">Settings</h2>
-                    <div class="empty-state">
-                        <div class="empty-icon">⚙️</div>
-                        <div class="empty-text">Settings</div>
-                        <div class="empty-subtext">Customization options coming soon</div>
-                    </div>
-                </div>
-            </div>
-        </main>
-        </div>
-
-        <!-- Footer -->
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
@@ -896,8 +852,242 @@
             </div>
         </footer>
     </div>
+    
 
 <script>
+    // Unified Task Storage System
+
+class TaskFlowStorage {
+    constructor() {
+        this.STORAGE_KEY = 'taskFlowUnified';
+        this.COUNTER_KEY = 'taskFlowCounter';
+        this.tasks = [];
+        this.taskIdCounter = 1;
+        this.listeners = [];
+        
+        // Load existing data
+        this.loadTasks();
+        
+        // Listen for storage changes from other tabs/pages
+        window.addEventListener('storage', (e) => {
+            if (e.key === this.STORAGE_KEY || e.key === this.COUNTER_KEY) {
+                this.loadTasks();
+                this.notifyListeners();
+            }
+        });
+    }
+
+    // Add a listener for task changes
+    addListener(callback) {
+        this.listeners.push(callback);
+    }
+
+    // Notify all listeners of changes
+    notifyListeners() {
+        this.listeners.forEach(callback => callback(this.tasks));
+    }
+
+    // Save tasks to storage
+    saveTasks() {
+        try {
+            // Store in window object for same-page persistence
+            window.taskFlowData = {
+                tasks: this.tasks,
+                taskIdCounter: this.taskIdCounter
+            };
+            
+            // Store in localStorage for cross-page persistence
+            if (typeof(Storage) !== "undefined" && localStorage) {
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.tasks));
+                localStorage.setItem(this.COUNTER_KEY, this.taskIdCounter.toString());
+            }
+            
+            console.log('Tasks saved:', this.tasks.length);
+        } catch (e) {
+            console.log('Storage not available, using memory only');
+        }
+    }
+
+    // Load tasks from storage
+    loadTasks() {
+        try {
+            // First try localStorage (most persistent)
+            if (typeof(Storage) !== "undefined" && localStorage) {
+                const savedTasks = localStorage.getItem(this.STORAGE_KEY);
+                const savedCounter = localStorage.getItem(this.COUNTER_KEY);
+                
+                if (savedTasks) {
+                    this.tasks = JSON.parse(savedTasks);
+                    this.taskIdCounter = savedCounter ? parseInt(savedCounter) : 1;
+                    console.log('Tasks loaded from localStorage:', this.tasks.length);
+                    return;
+                }
+            }
+            
+            // Fallback to window object
+            if (window.taskFlowData) {
+                this.tasks = window.taskFlowData.tasks || [];
+                this.taskIdCounter = window.taskFlowData.taskIdCounter || 1;
+                console.log('Tasks loaded from window object:', this.tasks.length);
+                return;
+            }
+            
+        } catch (e) {
+            console.log('Could not load tasks, starting fresh');
+            this.tasks = [];
+            this.taskIdCounter = 1;
+        }
+    }
+
+    // Add a new task (for Task Page - detailed format)
+    addDetailedTask(taskData) {
+        const newTask = {
+            id: this.taskIdCounter++,
+            title: taskData.title,
+            description: taskData.description || '',
+            priority: taskData.priority || 'medium',
+            status: taskData.status || 'pending',
+            dueDate: taskData.dueDate || new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            completed: taskData.completed || false
+        };
+
+        this.tasks.push(newTask);
+        this.saveTasks();
+        this.notifyListeners();
+        return newTask;
+    }
+
+    // Add a simple task (for Dashboard Page - simple format)
+    addSimpleTask(taskText) {
+        const newTask = {
+            id: this.taskIdCounter++,
+            title: taskText,
+            description: '',
+            priority: 'medium',
+            status: 'pending',
+            dueDate: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            completed: false
+        };
+
+        this.tasks.push(newTask);
+        this.saveTasks();
+        this.notifyListeners();
+        return newTask;
+    }
+
+    // Update task
+    updateTask(taskId, updates) {
+        const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...updates };
+            this.saveTasks();
+            this.notifyListeners();
+            return this.tasks[taskIndex];
+        }
+        return null;
+    }
+
+    // Toggle task completion
+    toggleTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.completed = !task.completed;
+            task.status = task.completed ? 'completed' : 'pending';
+            this.saveTasks();
+            this.notifyListeners();
+            return task;
+        }
+        return null;
+    }
+
+    // Delete task
+    deleteTask(taskId) {
+        const initialLength = this.tasks.length;
+        this.tasks = this.tasks.filter(t => t.id !== taskId);
+        
+        if (this.tasks.length < initialLength) {
+            this.saveTasks();
+            this.notifyListeners();
+            return true;
+        }
+        return false;
+    }
+
+    // Get all tasks
+    getAllTasks() {
+        return [...this.tasks];
+    }
+
+    // Get filtered tasks
+    getFilteredTasks(filters = {}) {
+        let filtered = [...this.tasks];
+
+        // Filter by status
+        if (filters.status && filters.status !== 'all') {
+            if (filters.status === 'active') {
+                filtered = filtered.filter(task => !task.completed);
+            } else if (filters.status === 'completed') {
+                filtered = filtered.filter(task => task.completed);
+            } else {
+                filtered = filtered.filter(task => task.status === filters.status);
+            }
+        }
+
+        // Filter by priority
+        if (filters.priority && filters.priority !== 'all') {
+            filtered = filtered.filter(task => task.priority === filters.priority);
+        }
+
+        // Filter by search term
+        if (filters.search) {
+            const searchTerm = filters.search.toLowerCase();
+            filtered = filtered.filter(task => 
+                task.title.toLowerCase().includes(searchTerm) ||
+                task.description.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Sort by priority and due date
+        return filtered.sort((a, b) => {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                return priorityOrder[b.priority] - priorityOrder[a.priority];
+            }
+            return new Date(a.dueDate) - new Date(b.dueDate);
+        });
+    }
+
+    // Clear all tasks
+    clearAllTasks() {
+        this.tasks = [];
+        this.taskIdCounter = 1;
+        this.saveTasks();
+        this.notifyListeners();
+    }
+
+    // Get task statistics
+    getStats() {
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        const pending = total - completed;
+        
+        return {
+            total,
+            completed,
+            pending
+        };
+    }
+}
+
+// Create global instance
+window.TaskFlowStorage = window.TaskFlowStorage || new TaskFlowStorage();
+
+// Export for module use
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TaskFlowStorage;
+}
         // Hamburger Menu Toggle
         const hamburger = document.getElementById('hamburger');
         const sidebar = document.querySelector('.sidebar');
@@ -915,235 +1105,199 @@
             overlay.classList.remove('active');
         });
 
-        // Task Management Functions
-        const taskInput = document.getElementById('taskInput');
-        const addTaskBtn = document.getElementById('addTaskBtn');
-        const taskList = document.getElementById('taskList');
-        let currentFilter = 'all'; // Track current filter
+// DOM elements
+const taskInput = document.getElementById('taskInput');
+const addTaskBtn = document.getElementById('addTaskBtn');
+const taskList = document.getElementById('taskList');
 
-        // Filter Functions
-        function setupFilterTabs() {
-            const filterTabs = document.querySelectorAll('.filter-tab');
-            
-            filterTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Remove active class from all tabs
-                    filterTabs.forEach(t => t.classList.remove('active'));
-                    // Add active class to clicked tab
-                    this.classList.add('active');
-                    
-                    // Get filter type and apply it
-                    currentFilter = this.getAttribute('data-filter');
-                    applyFilter(currentFilter);
-                });
-            });
-        }
+// Get the unified storage instance
+const storage = window.TaskFlowStorage;
 
-        function applyFilter(filter) {
-            const allTasks = document.querySelectorAll('.task-item');
-            
-            allTasks.forEach(task => {
-                switch(filter) {
-                    case 'all':
-                        task.style.display = 'flex';
-                        break;
-                    case 'active':
-                        if (task.classList.contains('completed')) {
-                            task.style.display = 'none';
-                        } else {
-                            task.style.display = 'flex';
-                        }
-                        break;
-                    case 'completed':
-                        if (task.classList.contains('completed')) {
-                            task.style.display = 'flex';
-                        } else {
-                            task.style.display = 'none';
-                        }
-                        break;
-                }
-            });
-        }
+let currentFilter = 'all'; // Track current filter
 
-        // LocalStorage Functions
-        function saveTasksToStorage() {
-            const tasks = [];
-            const taskItems = document.querySelectorAll('.task-item');
+// Filter Functions
+function setupFilterTabs() {
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            filterTabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
             
-            taskItems.forEach((taskItem, index) => {
-                const taskText = taskItem.querySelector('.task-text').textContent;
-                const isCompleted = taskItem.classList.contains('completed');
-                tasks.push({
-                    text: taskText,
-                    completed: isCompleted,
-                    id: index
-                });
-            });
-            
-            localStorage.setItem('todoTasks', JSON.stringify(tasks));
-        }
-
-        function loadTasksFromStorage() {
-            // Clear existing tasks first to prevent duplicates
-            taskList.innerHTML = '';
-            
-            const savedTasks = localStorage.getItem('todoTasks');
-            console.log('Loading tasks from storage:', savedTasks);
-            
-            if (savedTasks) {
-                try {
-                    const tasks = JSON.parse(savedTasks);
-                    console.log('Parsed tasks:', tasks);
-                    
-                    tasks.forEach(task => {
-                        console.log('Creating task:', task.text, 'Completed:', task.completed);
-                        createTaskElement(task.text, task.completed);
-                    });
-                } catch (error) {
-                    console.error('Error loading tasks from localStorage:', error);
-                    // Clear corrupted data
-                    localStorage.removeItem('todoTasks');
-                }
-            }
-            
-            // Apply current filter after loading tasks
-            applyFilter(currentFilter);
-            updateStats();
-        }
-
-        function createTaskElement(taskText, isCompleted = false) {
-            const newTask = document.createElement('div');
-            newTask.className = 'task-item';
-            if (isCompleted) {
-                newTask.classList.add('completed');
-            }
-            
-            newTask.innerHTML = `
-                <div class="task-checkbox ${isCompleted ? 'checked' : ''}"></div>
-                <span class="task-text">${taskText}</span>
-                <button class="delete-btn">Delete</button>
-            `;
-            
-            taskList.appendChild(newTask);
-            console.log('Task created:', taskText, 'Classes:', newTask.className);
-        }
-
-        // Add Task Function
-        function addTask() {
-            const taskText = taskInput.value.trim();
-            
-            if (taskText === '') {
-                alert('Please enter a task!');
-                return;
-            }
-            
-            // Show alert when task is added
-            alert('Task added successfully!');
-            
-            // Create new task element
-            createTaskElement(taskText, false);
-            
-            // Clear input
-            taskInput.value = '';
-            
-            // Update statistics and save to localStorage
-            updateStats();
-            saveTasksToStorage();
-        }
-
-        // Task 2: Toggle Task Completion (Click on task text)
-        function toggleTaskCompletion(taskItem) {
-            taskItem.classList.toggle('completed');
-            const checkbox = taskItem.querySelector('.task-checkbox');
-            checkbox.classList.toggle('checked');
-            
-            // Update statistics and save to localStorage
-            updateStats();
-            saveTasksToStorage();
-            
-            // Reapply current filter to show/hide tasks correctly
-            applyFilter(currentFilter);
-        }
-
-        // Task 3: Delete Task Function
-        function deleteTask(taskItem) {
-            if (confirm('Are you sure you want to delete this task?')) {
-                taskItem.remove();
-                updateStats();
-                saveTasksToStorage();
-            }
-        }
-
-        // Update Statistics
-        function updateStats() {
-            const allTasks = document.querySelectorAll('.task-item');
-            const completedTasks = document.querySelectorAll('.task-item.completed');
-            const pendingTasks = allTasks.length - completedTasks.length;
-
-            // Debug logging
-            console.log('Total tasks:', allTasks.length);
-            console.log('Completed tasks:', completedTasks.length);
-            console.log('Pending tasks:', pendingTasks);
-
-            // Safely update elements if they exist
-            const totalElement = document.getElementById('total-count');
-            const completedElement = document.getElementById('completed-count');
-            const pendingElement = document.getElementById('pending-count');
-
-            if (totalElement) totalElement.textContent = allTasks.length;
-            if (completedElement) completedElement.textContent = completedTasks.length;
-            if (pendingElement) pendingElement.textContent = pendingTasks;
-        }
-
-        // Event Delegation for Dynamic Task Elements
-        taskList.addEventListener('click', function(e) {
-            const taskItem = e.target.closest('.task-item');
-            
-            if (!taskItem) return;
-            
-            // Task 2: Toggle completion when clicking on task text
-            if (e.target.classList.contains('task-text')) {
-                toggleTaskCompletion(taskItem);
-            }
-            
-            // Task 3: Delete task when clicking delete button
-            if (e.target.classList.contains('delete-btn')) {
-                deleteTask(taskItem);
-            }
-            
-            // Also allow clicking on checkbox to toggle completion
-            if (e.target.classList.contains('task-checkbox')) {
-                toggleTaskCompletion(taskItem);
-            }
+            // Get filter type and apply it
+            currentFilter = this.getAttribute('data-filter');
+            renderTasks(); // Use unified rendering instead of applyFilter
         });
+    });
+}
 
-        // Add Task Event Listeners
-        addTaskBtn.addEventListener('click', addTask);
+// Unified task rendering function
+function renderTasks() {
+    if (!taskList) return;
+    
+    // Clear existing tasks
+    taskList.innerHTML = '';
+    
+    const filters = {
+        status: currentFilter
+    };
+    
+    const filteredTasks = storage.getFilteredTasks(filters);
+    
+    // Create task elements for dashboard view
+    filteredTasks.forEach(task => {
+        createTaskElement(task);
+    });
+    
+    updateStats();
+}
 
-        taskInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addTask();
-            }
-        });
+function createTaskElement(task) {
+    const newTask = document.createElement('div');
+    newTask.className = 'task-item';
+    newTask.setAttribute('data-task-id', task.id);
+    
+    if (task.completed) {
+        newTask.classList.add('completed');
+    }
+    
+    newTask.innerHTML = `
+        <div class="task-checkbox ${task.completed ? 'checked' : ''}"></div>
+        <span class="task-text">${task.title}</span>
+        <button class="delete-btn">Delete</button>
+    `;
+    
+    taskList.appendChild(newTask);
+}
 
-        // Clear All Tasks Function (Optional)
-        function clearAllTasks() {
-            if (confirm('Are you sure you want to clear all tasks?')) {
-                taskList.innerHTML = '';
-                localStorage.removeItem('todoTasks');
-                updateStats();
-            }
+// Handle tasks changed from other pages
+function handleTasksChanged(tasks) {
+    renderTasks();
+}
+
+// Set up listener for storage changes
+storage.addListener(handleTasksChanged);
+
+// Add Task Function
+function addTask() {
+    const taskText = taskInput ? taskInput.value.trim() : '';
+    
+    if (taskText === '') {
+        alert('Please enter a task!');
+        return;
+    }
+    
+    // Show alert when task is added
+    alert('Task added successfully!');
+    
+    // Add task using unified storage
+    storage.addSimpleTask(taskText);
+    
+    // Clear input
+    if (taskInput) {
+        taskInput.value = '';
+    }
+}
+
+// Toggle Task Completion
+function toggleTaskCompletion(taskItem) {
+    const taskId = parseInt(taskItem.getAttribute('data-task-id'));
+    if (taskId) {
+        storage.toggleTask(taskId);
+    }
+}
+
+// Delete Task Function
+function deleteTask(taskItem) {
+    if (confirm('Are you sure you want to delete this task?')) {
+        const taskId = parseInt(taskItem.getAttribute('data-task-id'));
+        if (taskId) {
+            storage.deleteTask(taskId);
         }
+    }
+}
 
-        // Add this function to your HTML if you want a clear all button
-        // <button onclick="clearAllTasks()">Clear All Tasks</button>
+// Update Statistics
+function updateStats() {
+    const stats = storage.getStats();
+    
+    // Debug logging
+    console.log('Total tasks:', stats.total);
+    console.log('Completed tasks:', stats.completed);
+    console.log('Pending tasks:', stats.pending);
 
-        // Initialize on page load - only run once
-        document.addEventListener('DOMContentLoaded', function() {
-            setupFilterTabs(); // Setup filter tab functionality
-            loadTasksFromStorage();
-        });
+    // Safely update elements if they exist
+    const totalElement = document.getElementById('total-count');
+    const completedElement = document.getElementById('completed-count');
+    const pendingElement = document.getElementById('pending-count');
 
+    if (totalElement) totalElement.textContent = stats.total;
+    if (completedElement) completedElement.textContent = stats.completed;
+    if (pendingElement) pendingElement.textContent = stats.pending;
+}
+
+// Event Delegation for Dynamic Task Elements
+if (taskList) {
+    taskList.addEventListener('click', function(e) {
+        const taskItem = e.target.closest('.task-item');
+        
+        if (!taskItem) return;
+        
+        // Toggle completion when clicking on task text
+        if (e.target.classList.contains('task-text')) {
+            toggleTaskCompletion(taskItem);
+        }
+        
+        // Delete task when clicking delete button
+        if (e.target.classList.contains('delete-btn')) {
+            deleteTask(taskItem);
+        }
+        
+        // Also allow clicking on checkbox to toggle completion
+        if (e.target.classList.contains('task-checkbox')) {
+            toggleTaskCompletion(taskItem);
+        }
+    });
+}
+
+// Add Task Event Listeners
+if (addTaskBtn) {
+    addTaskBtn.addEventListener('click', addTask);
+}
+
+if (taskInput) {
+    taskInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            addTask();
+        }
+    });
+}
+
+// Clear All Tasks Function
+function clearAllTasks() {
+    if (confirm('Are you sure you want to clear all tasks?')) {
+        storage.clearAllTasks();
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setupFilterTabs(); // Setup filter tab functionality
+    renderTasks(); // Initial render using unified storage
+});
+
+// Legacy functions for backward compatibility
+function saveTasksToStorage() {
+    // This is now handled automatically by the unified storage
+    console.log('Tasks are automatically saved');
+}
+
+function loadTasksFromStorage() {
+    // This is now handled by renderTasks()
+    renderTasks();
+}
         // Theme toggle
 themeToggle.addEventListener('click', function() {
     document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
