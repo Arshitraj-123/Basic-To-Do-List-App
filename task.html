@@ -945,10 +945,6 @@
         <span class="nav-icon"><i class="fas fa-tasks"></i></span>
         <span>Tasks</span>
     </button>
-    <button class="nav-item" onclick="location.href='my profile.html'">
-        <span class="nav-icon"><i class="fas fa-user"></i></span>
-        <span>My Profile</span>
-    </button>
     <button class="nav-item" onclick="location.href='setting.html'">
         <span class="nav-icon"><i class="fas fa-cog"></i></span>
         <span>Settings</span>
@@ -1111,12 +1107,241 @@
             </div>
         </footer>
     </div>
-
+ 
 
     <script>
-// Task management functionality with persistence
-let tasks = [];
-let taskIdCounter = 1;
+
+class TaskFlowStorage {
+    constructor() {
+        this.STORAGE_KEY = 'taskFlowUnified';
+        this.COUNTER_KEY = 'taskFlowCounter';
+        this.tasks = [];
+        this.taskIdCounter = 1;
+        this.listeners = [];
+        
+        // Load existing data
+        this.loadTasks();
+        
+        // Listen for storage changes from other tabs/pages
+        window.addEventListener('storage', (e) => {
+            if (e.key === this.STORAGE_KEY || e.key === this.COUNTER_KEY) {
+                this.loadTasks();
+                this.notifyListeners();
+            }
+        });
+    }
+
+    // Add a listener for task changes
+    addListener(callback) {
+        this.listeners.push(callback);
+    }
+
+    // Notify all listeners of changes
+    notifyListeners() {
+        this.listeners.forEach(callback => callback(this.tasks));
+    }
+
+    // Save tasks to storage
+    saveTasks() {
+        try {
+            // Store in window object for same-page persistence
+            window.taskFlowData = {
+                tasks: this.tasks,
+                taskIdCounter: this.taskIdCounter
+            };
+            
+            // Store in localStorage for cross-page persistence
+            if (typeof(Storage) !== "undefined" && localStorage) {
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.tasks));
+                localStorage.setItem(this.COUNTER_KEY, this.taskIdCounter.toString());
+            }
+            
+            console.log('Tasks saved:', this.tasks.length);
+        } catch (e) {
+            console.log('Storage not available, using memory only');
+        }
+    }
+
+    // Load tasks from storage
+    loadTasks() {
+        try {
+            // First try localStorage (most persistent)
+            if (typeof(Storage) !== "undefined" && localStorage) {
+                const savedTasks = localStorage.getItem(this.STORAGE_KEY);
+                const savedCounter = localStorage.getItem(this.COUNTER_KEY);
+                
+                if (savedTasks) {
+                    this.tasks = JSON.parse(savedTasks);
+                    this.taskIdCounter = savedCounter ? parseInt(savedCounter) : 1;
+                    console.log('Tasks loaded from localStorage:', this.tasks.length);
+                    return;
+                }
+            }
+            
+            // Fallback to window object
+            if (window.taskFlowData) {
+                this.tasks = window.taskFlowData.tasks || [];
+                this.taskIdCounter = window.taskFlowData.taskIdCounter || 1;
+                console.log('Tasks loaded from window object:', this.tasks.length);
+                return;
+            }
+            
+        } catch (e) {
+            console.log('Could not load tasks, starting fresh');
+            this.tasks = [];
+            this.taskIdCounter = 1;
+        }
+    }
+
+    // Add a new task (for Task Page - detailed format)
+    addDetailedTask(taskData) {
+        const newTask = {
+            id: this.taskIdCounter++,
+            title: taskData.title,
+            description: taskData.description || '',
+            priority: taskData.priority || 'medium',
+            status: taskData.status || 'pending',
+            dueDate: taskData.dueDate || new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            completed: taskData.completed || false
+        };
+
+        this.tasks.push(newTask);
+        this.saveTasks();
+        this.notifyListeners();
+        return newTask;
+    }
+
+    // Add a simple task (for Dashboard Page - simple format)
+    addSimpleTask(taskText) {
+        const newTask = {
+            id: this.taskIdCounter++,
+            title: taskText,
+            description: '',
+            priority: 'medium',
+            status: 'pending',
+            dueDate: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            completed: false
+        };
+
+        this.tasks.push(newTask);
+        this.saveTasks();
+        this.notifyListeners();
+        return newTask;
+    }
+
+    // Update task
+    updateTask(taskId, updates) {
+        const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...updates };
+            this.saveTasks();
+            this.notifyListeners();
+            return this.tasks[taskIndex];
+        }
+        return null;
+    }
+
+    // Toggle task completion
+    toggleTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.completed = !task.completed;
+            task.status = task.completed ? 'completed' : 'pending';
+            this.saveTasks();
+            this.notifyListeners();
+            return task;
+        }
+        return null;
+    }
+
+    // Delete task
+    deleteTask(taskId) {
+        const initialLength = this.tasks.length;
+        this.tasks = this.tasks.filter(t => t.id !== taskId);
+        
+        if (this.tasks.length < initialLength) {
+            this.saveTasks();
+            this.notifyListeners();
+            return true;
+        }
+        return false;
+    }
+
+    // Get all tasks
+    getAllTasks() {
+        return [...this.tasks];
+    }
+
+    // Get filtered tasks
+    getFilteredTasks(filters = {}) {
+        let filtered = [...this.tasks];
+
+        // Filter by status
+        if (filters.status && filters.status !== 'all') {
+            if (filters.status === 'active') {
+                filtered = filtered.filter(task => !task.completed);
+            } else if (filters.status === 'completed') {
+                filtered = filtered.filter(task => task.completed);
+            } else {
+                filtered = filtered.filter(task => task.status === filters.status);
+            }
+        }
+
+        // Filter by priority
+        if (filters.priority && filters.priority !== 'all') {
+            filtered = filtered.filter(task => task.priority === filters.priority);
+        }
+
+        // Filter by search term
+        if (filters.search) {
+            const searchTerm = filters.search.toLowerCase();
+            filtered = filtered.filter(task => 
+                task.title.toLowerCase().includes(searchTerm) ||
+                task.description.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Sort by priority and due date
+        return filtered.sort((a, b) => {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                return priorityOrder[b.priority] - priorityOrder[a.priority];
+            }
+            return new Date(a.dueDate) - new Date(b.dueDate);
+        });
+    }
+
+    // Clear all tasks
+    clearAllTasks() {
+        this.tasks = [];
+        this.taskIdCounter = 1;
+        this.saveTasks();
+        this.notifyListeners();
+    }
+
+    // Get task statistics
+    getStats() {
+        const total = this.tasks.length;
+        const completed = this.tasks.filter(t => t.completed).length;
+        const pending = total - completed;
+        
+        return {
+            total,
+            completed,
+            pending
+        };
+    }
+}
+
+// Create global instance
+window.TaskFlowStorage = window.TaskFlowStorage || new TaskFlowStorage();
+
+// Export for module use
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TaskFlowStorage;
+}
 
 // DOM elements
 const taskForm = document.getElementById('taskForm');
@@ -1130,115 +1355,79 @@ const sidebar = document.querySelector('.sidebar');
 const overlay = document.getElementById('overlay');
 const themeToggle = document.getElementById('themeToggle');
 
-// Persistence functions using window object for cross-page data
-function saveTasks() {
-    try {
-        // Store in window object for persistence across page navigation
-        window.taskFlowData = {
-            tasks: tasks,
-            taskIdCounter: taskIdCounter
-        };
-        
-        // Also try to use sessionStorage if available (fallback)
-        if (typeof(Storage) !== "undefined" && sessionStorage) {
-            sessionStorage.setItem('taskFlowTasks', JSON.stringify(tasks));
-            sessionStorage.setItem('taskFlowCounter', taskIdCounter.toString());
-        }
-        
-        console.log('Tasks saved:', tasks.length);
-    } catch (e) {
-        console.log('Storage not available, using memory only');
-    }
-}
-
-function loadTasks() {
-    try {
-        // First try to load from window object
-        if (window.taskFlowData) {
-            tasks = window.taskFlowData.tasks || [];
-            taskIdCounter = window.taskFlowData.taskIdCounter || 1;
-            console.log('Tasks loaded from window object:', tasks.length);
-            return;
-        }
-        
-        // Fallback to sessionStorage
-        if (typeof(Storage) !== "undefined" && sessionStorage) {
-            const savedTasks = sessionStorage.getItem('taskFlowTasks');
-            const savedCounter = sessionStorage.getItem('taskFlowCounter');
-            
-            if (savedTasks) {
-                tasks = JSON.parse(savedTasks);
-                taskIdCounter = savedCounter ? parseInt(savedCounter) : 1;
-                console.log('Tasks loaded from sessionStorage:', tasks.length);
-            }
-        }
-    } catch (e) {
-        console.log('Could not load tasks, starting fresh');
-        tasks = [];
-        taskIdCounter = 1;
-    }
-}
+// Get the unified storage instance
+const storage = window.TaskFlowStorage;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Load existing tasks first
-    loadTasks();
+    // Set up listener for storage changes
+    storage.addListener(handleTasksChanged);
     
+    // Initial render
     renderTasks();
     updateTaskCount();
     
     // Set today's date as default for due date
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('taskDueDate').value = today;
+    const dueDateInput = document.getElementById('taskDueDate');
+    if (dueDateInput) {
+        dueDateInput.value = today;
+    }
 });
 
-// Save tasks before page unload
-window.addEventListener('beforeunload', function() {
-    saveTasks();
-});
-
-// Also save tasks when window loses focus (when navigating to other pages)
-window.addEventListener('blur', function() {
-    saveTasks();
-});
-
-// Task form submission
-taskForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const newTask = {
-        id: taskIdCounter++,
-        title: document.getElementById('taskTitle').value,
-        description: document.getElementById('taskDescription').value,
-        priority: document.getElementById('taskPriority').value,
-        status: document.getElementById('taskStatus').value,
-        dueDate: document.getElementById('taskDueDate').value,
-        createdAt: new Date().toISOString(),
-        completed: false
-    };
-
-    tasks.push(newTask);
-    saveTasks(); // Save immediately after creating task
+// Handle tasks changed from other pages
+function handleTasksChanged(tasks) {
     renderTasks();
     updateTaskCount();
-    taskForm.reset();
-    
-    // Reset due date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('taskDueDate').value = today;
-    
-    // Show success message
-    showNotification('Task created successfully!', 'success');
-});
+}
+
+// Task form submission
+if (taskForm) {
+    taskForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const taskData = {
+            title: document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDescription').value,
+            priority: document.getElementById('taskPriority').value,
+            status: document.getElementById('taskStatus').value,
+            dueDate: document.getElementById('taskDueDate').value,
+            completed: false
+        };
+
+        const newTask = storage.addDetailedTask(taskData);
+        
+        // Reset form
+        taskForm.reset();
+        
+        // Reset due date to today
+        const today = new Date().toISOString().split('T')[0];
+        const dueDateInput = document.getElementById('taskDueDate');
+        if (dueDateInput) {
+            dueDateInput.value = today;
+        }
+        
+        // Show success message
+        showNotification('Task created successfully!', 'success');
+    });
+}
 
 // Filter event listeners
-statusFilter.addEventListener('change', renderTasks);
-priorityFilter.addEventListener('change', renderTasks);
-searchInput.addEventListener('input', renderTasks);
+if (statusFilter) statusFilter.addEventListener('change', renderTasks);
+if (priorityFilter) priorityFilter.addEventListener('change', renderTasks);
+if (searchInput) searchInput.addEventListener('input', renderTasks);
 
 // Render tasks
 function renderTasks() {
-    const filteredTasks = getFilteredTasks();
+    if (!taskList) return;
+    
+    const filters = {
+        status: statusFilter ? statusFilter.value : 'all',
+        priority: priorityFilter ? priorityFilter.value : 'all',
+        search: searchInput ? searchInput.value : ''
+    };
+    
+    const filteredTasks = storage.getFilteredTasks(filters);
     
     if (filteredTasks.length === 0) {
         taskList.innerHTML = `
@@ -1309,49 +1498,10 @@ function renderTasks() {
     `).join('');
 }
 
-// Get filtered tasks
-function getFilteredTasks() {
-    let filtered = tasks;
-
-    // Filter by status
-    if (statusFilter.value !== 'all') {
-        filtered = filtered.filter(task => task.status === statusFilter.value);
-    }
-
-    // Filter by priority
-    if (priorityFilter.value !== 'all') {
-        filtered = filtered.filter(task => task.priority === priorityFilter.value);
-    }
-
-    // Filter by search term
-    const searchTerm = searchInput.value.toLowerCase();
-    if (searchTerm) {
-        filtered = filtered.filter(task => 
-            task.title.toLowerCase().includes(searchTerm) ||
-            task.description.toLowerCase().includes(searchTerm)
-        );
-    }
-
-    // Sort by priority and due date
-    return filtered.sort((a, b) => {
-        const priorityOrder = { high: 3, medium: 2, low: 1 };
-        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-            return priorityOrder[b.priority] - priorityOrder[a.priority];
-        }
-        return new Date(a.dueDate) - new Date(b.dueDate);
-    });
-}
-
 // Toggle task completion
 function toggleTaskCompletion(taskId) {
-    const task = tasks.find(t => t.id === taskId);
+    const task = storage.toggleTask(taskId);
     if (task) {
-        task.completed = !task.completed;
-        task.status = task.completed ? 'completed' : 'pending';
-        saveTasks(); // Save after change
-        renderTasks();
-        updateTaskCount();
-        
         const message = task.completed ? 'Task completed!' : 'Task marked as pending';
         showNotification(message, 'success');
     }
@@ -1367,17 +1517,27 @@ function toggleTaskDetails(taskId) {
 
 // Edit task
 function editTask(taskId) {
+    const tasks = storage.getAllTasks();
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-        document.getElementById('taskTitle').value = task.title;
-        document.getElementById('taskDescription').value = task.description;
-        document.getElementById('taskPriority').value = task.priority;
-        document.getElementById('taskStatus').value = task.status;
-        document.getElementById('taskDueDate').value = task.dueDate;
+        const titleInput = document.getElementById('taskTitle');
+        const descInput = document.getElementById('taskDescription');
+        const priorityInput = document.getElementById('taskPriority');
+        const statusInput = document.getElementById('taskStatus');
+        const dueDateInput = document.getElementById('taskDueDate');
+        
+        if (titleInput) titleInput.value = task.title;
+        if (descInput) descInput.value = task.description;
+        if (priorityInput) priorityInput.value = task.priority;
+        if (statusInput) statusInput.value = task.status;
+        if (dueDateInput) dueDateInput.value = task.dueDate;
         
         // Remove the task and update the form to edit mode
         deleteTask(taskId);
-        document.querySelector('.create-task-btn').innerHTML = '<i class="fas fa-save"></i> Update Task';
+        const createBtn = document.querySelector('.create-task-btn');
+        if (createBtn) {
+            createBtn.innerHTML = '<i class="fas fa-save"></i> Update Task';
+        }
         showNotification('Task loaded for editing', 'info');
     }
 }
@@ -1385,18 +1545,19 @@ function editTask(taskId) {
 // Delete task
 function deleteTask(taskId) {
     if (confirm('Are you sure you want to delete this task?')) {
-        tasks = tasks.filter(t => t.id !== taskId);
-        saveTasks(); // Save after deletion
-        renderTasks();
-        updateTaskCount();
-        showNotification('Task deleted successfully', 'success');
+        const success = storage.deleteTask(taskId);
+        if (success) {
+            showNotification('Task deleted successfully', 'success');
+        }
     }
 }
 
 // Update task count
 function updateTaskCount() {
-    const count = tasks.length;
-    taskCount.textContent = `${count} task${count !== 1 ? 's' : ''}`;
+    if (!taskCount) return;
+    
+    const stats = storage.getStats();
+    taskCount.textContent = `${stats.total} task${stats.total !== 1 ? 's' : ''}`;
 }
 
 // Format date
@@ -1438,18 +1599,38 @@ function showNotification(message, type = 'info') {
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         z-index: 10000;
         animation: slideIn 0.3s ease;
+        max-width: 300px;
+        word-wrap: break-word;
     `;
+    
+    // Add CSS animation styles if not already added
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
         }, 300);
     }, 3000);
 }
-
 // Mobile menu toggle
 hamburger.addEventListener('click', function() {
     sidebar.classList.toggle('mobile-open');
