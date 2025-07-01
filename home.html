@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Flow Dashboard</title>
+    <meta name="description" content="Modern Dashboard Homepage" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #2c3e50;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 700px;
+      }
+
+      /* Left Panel */
+      .left-panel {
+        padding: 3rem;
+        position: relative;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .decorative-circle {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.1;
+      }
+
+      .circle-blue {
+        width: 150px;
+        height: 150px;
+        background: #3b82f6;
+        top: -75px;
+        left: -75px;
+      }
+
+      .circle-purple {
+        width: 100px;
+        height: 100px;
+        background: #8b5cf6;
+        top: 30px;
+        right: 60px;
+      }
+
+      .circle-indigo {
+        width: 120px;
+        height: 120px;
+        background: #6366f1;
+        bottom: -60px;
+        right: -60px;
+      }
+
+      .logo {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 2.5rem;
+        z-index: 10;
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 10;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+        color: #1e293b;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .password-field {
+        position: relative;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 1.2rem;
+        transition: color 0.3s ease;
+      }
+
+      .password-toggle:hover {
+        color: #667eea;
+      }
+
+      .forgot-password {
+        text-align: center;
+        margin: 1.5rem 0;
+      }
+
+      .forgot-password a {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .forgot-password a:hover {
+        color: #5a67d8;
+      }
+
+      .login-btn {
+        width: 75%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .login-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .login-btn:hover::before {
+        left: 100%;
+      }
+
+      .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      }
+
+      .arrow-btn {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 1.4rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 1rem;
+      }
+
+      .arrow-btn:hover {
+        transform: translateY(-2px) rotate(5deg);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+      }
+
+      .register-link {
+        text-align: center;
+        margin-top: 2rem;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+
+      .register-link a {
+        color: #f59e0b;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+
+      .register-link a:hover {
+        color: #d97706;
+      }
+
+      /* Right Panel */
+      .right-panel {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .image-container {
+        text-align: center;
+        color: white;
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .interactive-image {
+        width: 280px;
+        height: 280px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        backdrop-filter: blur(20px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .interactive-image::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: conic-gradient(transparent, rgba(255,255,255,0.1), transparent);
+        animation: rotate 4s linear infinite;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .interactive-image:hover::before {
+        opacity: 1;
+      }
+
+      .interactive-image:hover {
+        transform: scale(1.05) translateY(-5px);
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .image-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        z-index: 2;
+        position: relative;
+      }
+
+      .image-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        z-index: 2;
+        position: relative;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .gallery-item {
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .gallery-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.5s;
+      }
+
+      .gallery-item:hover::before {
+        left: 100%;
+      }
+
+      .gallery-item:hover {
+        transform: translateY(-8px) scale(1.1);
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .gallery-item:nth-child(1) { 
+        animation: float 4s ease-in-out infinite;
+        animation-delay: 0s;
+      }
+      .gallery-item:nth-child(2) { 
+        animation: float 4s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+      .gallery-item:nth-child(3) { 
+        animation: float 4s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+      .gallery-item:nth-child(4) { 
+        animation: float 4s ease-in-out infinite;
+        animation-delay: 3s;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+      }
+
+      /* Decorative elements for right panel */
+      .right-panel::before {
+        content: '';
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        top: -100px;
+        right: -100px;
+        animation: pulse 3s ease-in-out infinite;
+      }
+
+      .right-panel::after {
+        content: '';
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        bottom: -75px;
+        left: -75px;
+        animation: pulse 3s ease-in-out infinite 1.5s;
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1024px) {
+        .container {
+          max-width: 900px;
+        }
+        
+        .interactive-image {
+          width: 240px;
+          height: 240px;
+        }
+        
+        .gallery-item {
+          width: 80px;
+          height: 80px;
+          font-size: 1.8rem;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          grid-template-columns: 1fr;
+          width: 95%;
+          margin: 1rem;
+          max-width: none;
+        }
+
+        .left-panel, .right-panel {
+          padding: 2rem;
+        }
+
+        .logo {
+          font-size: 2rem;
+          text-align: center;
+        }
+
+        .interactive-image {
+          width: 200px;
+          height: 200px;
+        }
+
+        .image-icon {
+          font-size: 3rem;
+        }
+
+        .gallery {
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+        }
+
+        .gallery-item {
+          width: 60px;
+          height: 60px;
+          font-size: 1.5rem;
+        }
+
+        .login-btn {
+          width: 100%;
+          margin-bottom: 1rem;
+        }
+
+        .arrow-btn {
+          width: 100%;
+          margin-left: 0;
+          height: 50px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .left-panel, .right-panel {
+          padding: 1.5rem;
+        }
+
+        .logo {
+          font-size: 1.8rem;
+        }
+
+        .interactive-image {
+          width: 180px;
+          height: 180px;
+        }
+
+        .image-icon {
+          font-size: 2.5rem;
+        }
+
+        .gallery-item {
+          width: 50px;
+          height: 50px;
+          font-size: 1.2rem;
+        }
+
+        .form-group input {
+          padding: 0.875rem 1rem;
+        }
+      }
+
+      @media (max-width: 360px) {
+        .container {
+          margin: 0.5rem;
+        }
+
+        .left-panel, .right-panel {
+          padding: 1rem;
+        }
+
+        .interactive-image {
+          width: 160px;
+          height: 160px;
+        }
+
+        .gallery {
+          gap: 0.5rem;
+        }
+      }
+       .dashboard-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-preview::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .preview-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: white;
+        }
+
+        .dashboard-mockup {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mockup-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .mockup-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .control-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .mockup-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .mockup-chart {
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: end;
+            height: 100%;
+            padding: 12px;
+            gap: 4px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+            animation: chartGrow 2s ease-out infinite alternate;
+        }
+
+        .chart-bar:nth-child(1) { height: 60%; animation-delay: 0s; }
+        .chart-bar:nth-child(2) { height: 85%; animation-delay: 0.2s; }
+        .chart-bar:nth-child(3) { height: 45%; animation-delay: 0.4s; }
+        .chart-bar:nth-child(4) { height: 90%; animation-delay: 0.6s; }
+        .chart-bar:nth-child(5) { height: 70%; animation-delay: 0.8s; }
+        .chart-bar:nth-child(6) { height: 55%; animation-delay: 1s; }
+
+        @keyframes chartGrow {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .preview-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .preview-description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 32px;
+            max-width: 400px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .feature-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                max-width: 480px;
+                min-height: auto;
+            }
+
+            .login-section {
+                padding: 40px 32px;
+                border-right: none;
+                border-bottom: 1px solid #e8eef5;
+            }
+
+            .dashboard-preview {
+                padding: 40px 32px;
+            }
+
+            .company-name {
+                font-size: 1.5rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .mockup-stats {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .feature-list {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .preview-title {
+                font-size: 1.6rem;
+            }
+
+            .preview-description {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+            }
+
+            .login-section {
+                padding: 32px 24px;
+            }
+
+            .dashboard-preview {
+                padding: 32px 24px;
+            }
+
+            .dashboard-mockup {
+                padding: 24px;
+            }
+        }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- Left Panel -->
+      <div class="left-panel">
+        <div class="decorative-circle circle-blue"></div>
+        <div class="decorative-circle circle-purple"></div>
+        <div class="decorative-circle circle-indigo"></div>
+
+        <div class="logo">
+          Task Flow<br>Dashboard
+        </div>
+
+        <form>
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter your username" required>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-field">
+              <input type="password" id="password" name="password" placeholder="Enter your password" required>
+              <button type="button" class="password-toggle" onclick="togglePassword()">👁</button>
+            </div>
+          </div>
+
+          <div class="forgot-password">
+            <a href="#" onclick="showAlert('Password reset feature coming soon!')">Forgot Password?</a>
+          </div>
+
+          <div style="display: flex; align-items: center; flex-wrap: wrap;">
+            <button type="submit" class="login-btn" onclick="handleLogin(event)">LOGIN</button>
+            <button type="button" class="arrow-btn" onclick="handleArrowClick()">→</button>
+          </div>
+        </form>
+
+        <div class="register-link">
+          Don't have an account? <a href="#" onclick="showAlert('Registration feature coming soon!')">REGISTER</a>
+        </div>
+      </div>
+
+      <div class="dashboard-preview">
+            <div class="preview-content">
+                <div class="dashboard-mockup">
+                    <div class="mockup-header">
+                        <div class="mockup-title">Dashboard Overview</div>
+                        <div class="mockup-controls">
+                            <div class="control-dot"></div>
+                            <div class="control-dot"></div>
+                            <div class="control-dot"></div>
+                        </div> 
+                     </div>
+
+                    <div class="mockup-stats">
+                        <div class="stat-card">
+                            <div class="stat-number">2,847</div>
+                            <div class="stat-label">Active Tasks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">94%</div>
+                            <div class="stat-label">Completion Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">156</div>
+                            <div class="stat-label">Team Members</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">12</div>
+                            <div class="stat-label">Active Projects</div>
+                        </div>
+                    </div> 
+
+                    <div class="mockup-chart">
+                        <div class="chart-bars">
+                            <div class="chart-bar"></div>
+                            <div class="chart-bar"></div>
+                            <div class="chart-bar"></div>
+                            <div class="chart-bar"></div>
+                            <div class="chart-bar"></div>
+                            <div class="chart-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="preview-title">Task Flow Dashboard</h2>
+                <p class="preview-description">
+                   Streamline your workflow and boost productivity with our comprehensive task management platform. Built for teams and individuals who demand excellence.
+                </p>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-text">Advanced Analytics</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-text">Real-time Updates</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-text">Team Collaboration</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🔒</div>
+                        <div class="feature-text"> Security</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+  // Show temporary alerts
+  function showAlert(message) {
+    alert(message);
+  }
+
+  // Toggle password visibility
+  function togglePassword() {
+    const pwd = document.getElementById("password");
+    pwd.type = pwd.type === "password" ? "text" : "password";
+  }
+
+  // Simulate registration (store in localStorage)
+  function registerUser(username, password) {
+    if (username && password) {
+      localStorage.setItem("taskflowUser", JSON.stringify({ username, password }));
+      alert("Registration successful! You can now log in.");
+    } else {
+      alert("Please enter username and password to register.");
+    }
+  }
+
+  // Handle login
+  function handleLogin(event) {
+    event.preventDefault();
+    const inputUsername = document.getElementById("username").value.trim();
+    const inputPassword = document.getElementById("password").value.trim();
+
+    const storedUser = JSON.parse(localStorage.getItem("taskflowUser"));
+
+    if (!storedUser) {
+      alert("No registered user found. Please register first.");
+      return;
+    }
+
+    if (
+      inputUsername === storedUser.username &&
+      inputPassword === storedUser.password
+    ) {
+      alert("Login successful! Redirecting to dashboard...");
+      window.location.href = "dashboard.html"; // Redirect to dashboard
+    } else {
+      alert("Invalid credentials. Please try again.");
+    }
+  }
+
+  // Dummy arrow button click
+  function handleArrowClick() {
+    alert("Please log in to continue.");
+  }
+
+  // Replace registration link with real form (optional)
+  document.querySelector(".register-link a").addEventListener("click", function (e) {
+    e.preventDefault();
+    const username = prompt("Choose a username:");
+    const password = prompt("Choose a password:");
+    registerUser(username, password);
+  });
+</script>
+
+  </body>
+</html>
